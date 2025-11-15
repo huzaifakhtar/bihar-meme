@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #__next {
+  height: 100%;
+}
+
+body {
+  background: #ffffff;
+  @apply text-gray-900;
+}
+
+/* Slap animation styles */
+.slap-animation {
+  /* responsive container: keep aspect ratio, allow scaling on small screens */
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 12 / 7; /* ~240x140 */
+  position: relative;
+}
+.slap-animation .person {
+  position: absolute;
+  left: 20px;
+  top: 30px;
+  width: 60px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.slap-animation .person .head {
+  width: 44px;
+  height: 44px;
+  background: #fde68a; /* skin */
+  border-radius: 9999px;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.05) inset;
+}
+.slap-animation .hand {
+  position: absolute;
+  right: 20px;
+  top: 10px;
+  width: 100px;
+  height: 100px;
+  transform-origin: left center;
+}
+.slap-animation.play .hand {
+  animation: slap 420ms cubic-bezier(.2,.9,.2,1);
+}
+.slap-animation.play .person .head {
+  animation: impact 420ms linear;
+}
+
+@keyframes slap {
+  0% { transform: translateX(0) rotate(0deg); }
+  40% { transform: translateX(-48px) rotate(-12deg); }
+  60% { transform: translateX(-30px) rotate(-6deg); }
+  100% { transform: translateX(0) rotate(0deg); }
+}
+
+@keyframes impact {
+  0% { transform: translateX(0) scale(1); }
+  30% { transform: translateX(6px) scale(0.98); }
+  60% { transform: translateX(-4px) scale(1.02); }
+  100% { transform: translateX(0) scale(1); }
+}
+
+/* Video placed inside the slap-animation area */
+.slap-animation video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+}

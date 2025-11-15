@@ -1,0 +1,23 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model SlapEvent {
+  id        String   @id @default(uuid())
+  amount    Int      @default(1)
+  ipHash    String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model GlobalStat {
+  key       String  @id
+  count     Int     @default(0)
+  updatedAt DateTime @updatedAt
+}
