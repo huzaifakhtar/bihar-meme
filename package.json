@@ -4,13 +4,14 @@
   "private": true,
   "scripts": {
   "dev": "next dev",
-  "build": "prisma generate && next build",
+  "build": "prisma generate && node ./scripts/maybe-migrate.js && next build",
   "postinstall": "prisma generate",
     "start": "next start",
     "prisma:migrate": "prisma migrate dev --name init",
     "prisma:generate": "prisma generate",
     "seed": "node prisma/seed.js"
   },
+  "vercel:deploy": "npx vercel --prod --confirm",
   "dependencies": {
     "@prisma/client": "4.16.0",
     "clsx": "1.2.1",

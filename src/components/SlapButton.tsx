@@ -82,12 +82,32 @@ export default function SlapButton({
 
     // play (user initiated - should succeed); attempt muted fallback only if play() rejects
     try {
+      // Try a regular play first. If the browser rejects (autoplay/policy or
+      // codec issues), try a muted play. If both fail (some embed contexts
+      // and older browsers may throw NotSupportedError), fallback to sending
+      // the slap immediately so the click doesn't get lost.
+      let playFailed = false
       const p = v.play()
       if (p && p.catch) {
         p.catch(async (err: any) => {
           safeLog('play-failed, retrying muted', err)
           try { v.muted = true } catch (e) { safeLog('mute-failed', e) }
-          try { await v.play() } catch (e) { safeLog('muted-play-failed', e) }
+          try {
+            const p2 = v.play()
+            if (p2 && p2.catch) {
+              p2.catch((err2: any) => {
+                safeLog('muted-play-failed', err2)
+                playFailed = true
+                // If playback cannot start at all, commit the send flow so
+                // the user action is still recorded.
+                try { doSendOnce() } catch (e) { safeLog('doSendOnce-fallback', e) }
+              })
+            }
+          } catch (e) {
+            safeLog('muted-play-exception', e)
+            playFailed = true
+            try { doSendOnce() } catch (ee) { safeLog('doSendOnce-fallback', ee) }
+          }
         })
       }
     } catch (e) {
@@ -167,9 +187,9 @@ export default function SlapButton({
         // mark send in-flight
         try { sendingRef.current = true } catch {}
       try {
-  // include X-Action-ID header for server-side idempotency/dedupe
-  const actionHeader = actionIdRef.current ?? `${Date.now()}-${Math.random().toString(36).slice(2,8)}`
-  const res = await fetch('/api/slap', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-action-id': actionHeader }, body: JSON.stringify({}) })
+        // include X-Action-ID header for server-side idempotency/dedupe
+        const actionHeader = actionIdRef.current ?? `${Date.now()}-${Math.random().toString(36).slice(2,8)}`
+        const res = await fetch('/api/slap', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-action-id': actionHeader }, body: JSON.stringify({}) })
         const data = await res.json()
         if (res.ok && data.totalSlaps !== undefined) {
           setCount(data.totalSlaps)
@@ -182,10 +202,18 @@ export default function SlapButton({
             })
           setMessage('Slap recorded!')
         } else {
-            setMessage(data.error || 'Something went wrong')
+            // More helpful messages on server-side failures
+            if (res.status === 503) {
+              setMessage('Server temporarily unavailable (try again)')
+            } else if (res.status >= 500) {
+              setMessage('Server error — try again')
+            } else {
+              setMessage(data.error || 'Something went wrong')
+            }
         }
       } catch (e) {
-          setMessage('Network error')
+          safeLog('send-error', e)
+          setMessage('Network error — check connection')
       } finally {
         setLoading(false)
         setDisabledTemp(false)
