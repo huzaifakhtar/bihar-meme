@@ -167,7 +167,9 @@ export default function SlapButton({
         // mark send in-flight
         try { sendingRef.current = true } catch {}
       try {
-        const res = await fetch('/api/slap', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) })
+  // include X-Action-ID header for server-side idempotency/dedupe
+  const actionHeader = actionIdRef.current ?? `${Date.now()}-${Math.random().toString(36).slice(2,8)}`
+  const res = await fetch('/api/slap', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-action-id': actionHeader }, body: JSON.stringify({}) })
         const data = await res.json()
         if (res.ok && data.totalSlaps !== undefined) {
           setCount(data.totalSlaps)
@@ -209,7 +211,10 @@ export default function SlapButton({
           <video
             poster="/starting_frame.png"
             ref={videoRef}
-            src="/api/slap/video"
+            // prefer serving static assets directly from `public/` to avoid
+            // server-streaming route issues (404s were observed). These files
+            // live at /slap.mov and /slap_harder.mov in the public folder.
+            src="/slap.mov"
             preload="metadata"
             playsInline
             className={`w-full h-full object-cover rounded-md ${hardPlaying ? 'hidden' : ''} z-10`}
@@ -241,7 +246,9 @@ export default function SlapButton({
           {/* harder video overlay - visible when playing harder clip */}
           <video
             ref={harderVideoRef}
-            src="/api/slap/harder-video"
+            // use static public file so browsers can directly request the asset
+            // without going through our API streaming endpoint (avoids 404s).
+            src="/slap_harder.mov"
             preload="auto"
             playsInline
             className={`absolute inset-0 w-full h-full object-cover rounded-md ${hardPlaying ? 'z-30 block' : 'z-10 hidden'}`}

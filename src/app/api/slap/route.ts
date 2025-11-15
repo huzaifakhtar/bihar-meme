@@ -71,7 +71,10 @@ export async function POST(req: Request) {
     // Prisma-specific handling
     try {
       const code = err?.code
-      if (code === 'P2021' || code === 'P1010') {
+      // Common Prisma errors when DB/tables are missing or client not initialized.
+      // P2021 = "The table does not exist", P1010 sometimes shown in some contexts.
+      const msg: string = String(err?.message || '')
+      if (code === 'P2021' || code === 'P1010' || msg.includes('PrismaClientInitializationError') || msg.includes('no such table') || msg.includes('does not exist')) {
         // DB or table missing — return 503 so callers can retry later
         try { console.error('[ /api/slap ] Prisma DB missing or not migrated', err) } catch {}
         return NextResponse.json({ error: 'db_unavailable' }, { status: 503 })
